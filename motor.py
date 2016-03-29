@@ -49,6 +49,18 @@ def setPolarity(port, pole):
 	fp.write(pole)
 	fp.close()
 
+def getPos(port):
+	fp = open(getPath(port, "position"), "r")
+	ret = fp.readline()[:-1]
+	fp.close()
+	return int(ret)
+
+def getState(port):
+	fp = open(getPath(port, "state"), "r")
+	ret = fp.readline()[:-1]
+	fp.close()
+	return ret
+
 # basic motor interfaces
 
 def runSingleRelat(m1, speed, pos, stop_cmd = "coast"):
@@ -86,3 +98,17 @@ def setDoubleSpeed(m1, m2, s1, s2):
 def stop(m1, stop_cmd = "coast"):
 	setStopCommand(m1, stop_cmd)
 	setCommand(m1, "stop")
+
+def reset(m1):
+	setCommand(m1, "reset")
+
+def waitForStop(m1):
+	while 1:
+		if (not "running" in getState(m1).split()):
+			return
+
+def waitForDoubleHold(m1, m2):
+	while 1:
+		if ("holding" in getState(m1).split()
+			and "holding" in getState(m2).split()):
+			return
