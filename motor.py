@@ -112,3 +112,9 @@ def waitForDoubleHold(m1, m2):
 		if ("holding" in getState(m1).split()
 			and "holding" in getState(m2).split()):
 			return
+
+def hasStopped(m1):
+	return not "running" in getState(m1).split()
+
+def isHolding(m1):
+	return "holding" in getState(m1).split()
