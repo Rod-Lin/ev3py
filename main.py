@@ -70,15 +70,22 @@ def pid2(m1, m2, sen1, sen2, speed, black1, black2, white1, white2, kp, ki, kd):
 	pos2_end = 0
 
 	white_count = 0
+	origin_speed = speed
+	origin_kp = kp
+	origin_ki = ki
+
+	turn_count = 0
+	keep_turn = 0
+	is_in_dec = 0
 
 	motor.runDoubleDirect(m1, m2, speed, speed)
-	for i in range(0, 1000):
+	for i in range(0, 1200):
 		val1 = sensor.val(sen1)
 		val2 = sensor.val(sen2)
 		
 		if (val1 >= white1 and val2 >= white2):
 			white_count += 1
-			if (white_count > 60):
+			if (white_count > 62):
 				print("!!! too much white")
 				pos1_end = motor.getPos(m1)
 				pos2_end = motor.getPos(m2)
@@ -111,7 +118,7 @@ def pid2(m1, m2, sen1, sen2, speed, black1, black2, white1, white2, kp, ki, kd):
 					count = 0
 					while count < 12:
 						val1 = sensor.val(sen1)
-						print(str(val2))
+						# print(str(val2))
 						if (val1 <= white1):
 							print("restore")
 							break
@@ -167,6 +174,36 @@ def pid2(m1, m2, sen1, sen2, speed, black1, black2, white1, white2, kp, ki, kd):
 		elif (s2 < -100):
 			s2 = -100
 
+		if (abs(s1 - s2) > 120):
+			turn_count += 1
+			print("turn count: " + str(turn_count))
+			if (turn_count >= 3):
+				if (is_in_dec):
+					keep_turn = 50 # keep this config for at least 10 turns
+					print("deceleration start")
+				else:
+					is_in_dec = 1
+					speed = 30
+					kp = 4.4
+					ki = 0.001
+					# val2 -= 5
+				turn_count = 0
+				
+		else:
+			turn_count = 0
+			if (is_in_dec):
+				if (keep_turn <= 0):
+					keep_turn = 0
+					print("restore speed")
+					is_in_dec = 0
+					speed = origin_speed
+					kp = origin_kp
+					ki = origin_ki
+					# val2 += 5
+				else:
+					keep_turn -= 1
+			
+
 		# print(str(int(s1)) + ", " + str(int(s2)))
 		motor.setDoubleSpeed(m1, m2, int(s1), int(s2))
 		last_err1 = error1
@@ -190,6 +227,6 @@ val2 = sensor.val(sensors[0][2]) - 8
 
 print("val1: %s, val2: %s" % (val1, val2))
 
-pid2(motors[1], motors[2], sensors[0][1], sensors[0][2], 40, val1, val2, 20, 30, 5, 0.001, 40)
+pid2(motors[1], motors[2], sensors[0][1], sensors[0][2], 40, val1, val2, 20, 30, 3, 0.01, 40)
 
 # motor.runDoubleRelat(motors[1], motors[2], 60, 50000, 60, 50000)
