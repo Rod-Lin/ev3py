@@ -3,6 +3,11 @@
 import os
 from const import *
 
+m_k = 1
+
+def setMK(k):
+	m_k = k
+
 def getList():
 	ret = []
 	for mot in os.listdir(ev3py_TMotorPath):
@@ -36,7 +41,7 @@ def setPosSP(port, pos):
 
 def setDutyCycleSP(port, val):
 	fp = open(getPath(port, "duty_cycle_sp"), "w")
-	fp.write(str(int(val)))
+	fp.write(str(int(val * m_k)))
 	fp.close()
 
 def setStopCommand(port, cmd):
@@ -105,6 +110,11 @@ def reset(m1):
 def waitForStop(m1):
 	while 1:
 		if (not "running" in getState(m1).split()):
+			return
+
+def waitForDoubleStop(m1, m2):
+	while 1:
+		if hasStopped(m1) and hasStopped(m2):
 			return
 
 def waitForDoubleHold(m1, m2):

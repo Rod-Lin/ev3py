@@ -32,6 +32,11 @@ def initList(lst):
 def getPath(port, name):
 	return "%s/sensor%s/%s" % (ev3py_SensorPath, port, name)
 
+def setMode(port, mode):
+	fp = open(getPath(port, "mode"), "w")
+	fp.write(mode)
+	fp.close()
+
 def val(port):
 	fp = open(getPath(port, "value0"), "r")
 	ret = fp.readline()[:-1]
