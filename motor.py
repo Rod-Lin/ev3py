@@ -4,9 +4,17 @@ import os
 from const import *
 
 m_k = 1
+m1_k = 1
+m2_k = 1
 
 def setMK(k):
 	m_k = k
+
+def setM1K(k):
+	m1_k = k
+
+def setM2K(k):
+	m2_k = k
 
 def getList():
 	ret = []
@@ -76,11 +84,11 @@ def runSingleRelat(m1, speed, pos, stop_cmd = "coast"):
 
 def runDoubleRelat(m1, m2, s1, pos1, s2, pos2, stop_cmd = "coast"):
 	setDutyCycleSP(m1, s1)
-	setPosSP(m1, pos1)
+	setPosSP(m1, pos1 * m1_k)
 	setStopCommand(m1, stop_cmd)
 
 	setDutyCycleSP(m2, s2)
-	setPosSP(m2, pos2)
+	setPosSP(m2, pos2 * m2_k)
 	setStopCommand(m2, stop_cmd)
 
 	setCommand(m1, "run-to-rel-pos")
