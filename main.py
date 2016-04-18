@@ -41,7 +41,8 @@ config = {
 	"white2": 30,
 	"white_count_thres": 70,
 	"more_output1_thres": 260,
-	"state_changing_thres": 25
+	"state_changing_thres": 25,
+	"stucked_thres": 200
 }
 
 pos1_begin = 0
@@ -189,9 +190,9 @@ def check_touch(m1, m2, sen1, sen2, val1, val2, speed, state):
 def inter(m1, m2, sen1, sen2, val1, val2, speed, state):
 	if (check_touch(m1, m2, sen1, sen2, val1, val2, speed, state)): return
 
-	if (check_break_line(m1, m2, sen1, sen2, val1, val2, speed, state)): return
+	# if (check_break_line(m1, m2, sen1, sen2, val1, val2, speed, state)): return
 
-	if (check_double_black(m1, m2, sen1, sen2, val1, val2, speed, state)): return
+	# if (check_double_black(m1, m2, sen1, sen2, val1, val2, speed, state)): return
 
 	return
 
@@ -216,6 +217,15 @@ def pid(m1, m2, sen1, sen2, speed,
 	ki_o = ki
 	kd_o = kd
 
+	time_begin = time.time()
+	time_end = 0
+	pos1_begin = motor.getPos(m1)
+	pos2_begin = motor.getPos(m2)
+	pos1_end = 0
+	pos2_end = 0
+
+	speed_o = speed
+
 	motor.runDoubleDirect(m1, m2, speed, speed)
 
 	for i in range(0, 5000):
@@ -223,6 +233,30 @@ def pid(m1, m2, sen1, sen2, speed,
 		val2 = sensor.val(sen2)
 
 		inter_act(m1, m2, sen1, sen2, val1, val2, speed, state)
+
+		# compute real speed
+		time_end = time.time()
+		if (time_end - time_begin >= 0.5):
+			pos1_end = motor.getPos(m1)
+			pos2_end = motor.getPos(m2)
+			rs1 = int((pos1_end - pos1_begin) / (time_end - time_begin))
+			rs2 = int((pos2_end - pos2_begin) / (time_end - time_begin))
+			print("%s %s" % (rs1, rs2))
+			if (abs(rs1) <= config["stucked_thres"]
+				and abs(rs2) <= config["stucked_thres"]):
+				print("stucked!!")
+				# speed = 60
+				motor.runDoubleRelat(m1, m2, 80, 700, 80, 700)
+				motor.waitForDoubleStop(m1, m2)
+				motor.runDoubleDirect(m1, m2, speed, speed)
+			# else:
+				# speed = speed_o
+			# time_end = time.time()
+			# print("%s, %s" % (int((pos1_end - pos1_begin) / (time_end - time_begin)),
+			#				  int((pos2_end - pos2_begin) / (time_end - time_begin))));
+			pos1_begin = pos1_end
+			pos2_begin = pos2_end
+			time_begin = time_end
 
 		if (val1 <= config["state_changing_thres"]):
 			# output1 = -70
@@ -237,7 +271,7 @@ def pid(m1, m2, sen1, sen2, speed,
 			state = 2
 			# motor.stop(m1)
 			# motor.stop(m2)
-			print(val1)
+			# print(val1)
 			# exit()
 		else:
 			tc1 = tc1_1
