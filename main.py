@@ -297,11 +297,10 @@ def pid(m1, m2, sen1, sen2, speed,
 			# if (output1 > 0):
 			#	print(output1)
 			# print("more output1: " + str(output1))
-			intg1 = 0
-			intg2 = 0
+			# intg1 = 0
+			# intg2 = 0
 			tc1 = tc1_2
 			tc2 = tc2_2
-			speed = 40
 			state = 2
 			# motor.stop(m1)
 			# motor.stop(m2)
@@ -391,6 +390,25 @@ def isWhite(val):
 	#return 0
 	return val == 6
 
+def isStucked(m1, m2, pos1, pos2, time_begin):
+	time_end = time.time()
+	if time_end - time_begin > 0.2:
+		end1 = motor.getPos(m1)
+		end2 = motor.getPos(m2)
+
+		rs1 = abs(int((end1 - pos1) / (time_end - time_begin)))
+		rs2 = abs(int((end2 - pos2) / (time_end - time_begin)))
+
+		print(rs1, " ", rs2)
+		if rs1 < 50 and rs2 < 50:
+			print("stucked! ", rs1, " ", rs2)
+			motor.runDoubleRelat(m1, m2, 80, 700, 80, 700)
+			motor.waitForDoubleStop(m1, m2)
+
+		return 1
+	return 0
+	# if (rs1 >= 120 and rs2 >= )
+
 def line(m1, m2, sen1, sen2, speed):
 
 	pos1_begin = motor.getPos(m1)
@@ -401,7 +419,13 @@ def line(m1, m2, sen1, sen2, speed):
 	is_b1 = 0
 	is_b2 = 0
 
-	scan_s = 75
+	scan_s = 100
+
+	last_dir = 0
+
+	rs_begin1 = motor.getPos(m1)
+	rs_begin2 = motor.getPos(m2)
+	time_begin = time.time()
 
 	motor.runDoubleDirect(m1, m2, speed, speed)
 
@@ -418,6 +442,13 @@ def line(m1, m2, sen1, sen2, speed):
 
 		if (touch1):
 			break
+		"""
+		if (isStucked(m1, m2, rs_begin1, rs_begin2, time_begin)):
+			rs_begin1 = motor.getPos(m1)
+			rs_begin2 = motor.getPos(m2)
+			time_begin = time.time()
+		"""
+		# print(pos1_end - pos1_begin)
 
 		if (is_b1 and is_b2):
 			motor.runDoubleRelat(m1, m2, 80, 100, 80, 100)
@@ -433,86 +464,142 @@ def line(m1, m2, sen1, sen2, speed):
 			pos1_begin = motor.getPos(m1)
 			pos2_begin = motor.getPos(m2)
 		elif is_b1:
-			motor.runDoubleDirect(m1, m2, -scan_s, scan_s)
-			while 1:
-				if (isWhite(sensor.val(sen1))
-					or isBlack(sensor.val(sen2))):
-					break
-			motor.runDoubleDirect(m1, m2, speed, speed)
+			# motor.runDoubleDirect(m1, m2, -scan_s, scan_s)
+			motor.setDoubleSpeed(m1, m2, -scan_s, scan_s)
+			#while not (isWhite(sensor.val(sen1))
+			#		   or isBlack(sensor.val(sen2))):
+			#	pass
 			pos1_begin = motor.getPos(m1)
 			pos2_begin = motor.getPos(m2)
+			last_dir = 1
 		elif is_b2:
-			motor.runDoubleDirect(m1, m2, scan_s, -scan_s)
-			while 1:
-				if (isBlack(sensor.val(sen1))
-					or isWhite(sensor.val(sen2))):
-					break
-			motor.runDoubleDirect(m1, m2, speed, speed)
+			# motor.runDoubleDirect(m1, m2, scan_s, -scan_s)
+			motor.setDoubleSpeed(m1, m2, scan_s, -scan_s)
+			#while not (isBlack(sensor.val(sen1))
+			#		   or isWhite(sensor.val(sen2))):
+			#	pass
 			pos1_begin = motor.getPos(m1)
 			pos2_begin = motor.getPos(m2)
+			last_dir = -1
 		elif (pos1_end - pos1_begin) > 400:
-			motor.runDoubleRelat(m1, m2, 80, -200, 80, 200)
-			find_back = 0
-			while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
-				if (isBlack(sensor.val(sen1))
-					or isBlack(sensor.val(sen2))):
-					motor.stop(m1);
-					motor.stop(m2);
-					find_back = 1
-					print("restore")
-					break
-			if not find_back:
-				motor.runDoubleRelat(m1, m2, 80, 400, 80, -400)
-				while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
-					if (isBlack(sensor.val(sen1))
-						or isBlack(sensor.val(sen2))):
-						motor.stop(m1);
-						motor.stop(m2);
-						find_back = 1
-						print("restore")
+			motor.stop(m1);
+			motor.stop(m2);
+			while 1:
+				motor.runDoubleRelat(m1, m2, 80, 300, 80, -300)
+				while not motor.hasStopped(m1):
+					if isBlack(sensor.val(sen1)) or isBlack(sensor.val(sen2)):
+						motor.stop(m1)
+						motor.stop(m2)
 						break
-				if not find_back:
-					motor.runDoubleRelat(m1, m2, scan_s, -200, scan_s, 200)
-					motor.waitForDoubleStop(m1, m2)
-
-					motor.runDoubleRelat(m1, m2,
-										 80, pos1_begin - pos1_end,
-										 80, pos2_begin - pos2_end,
-										 "hold")
-					motor.waitForDoubleHold(m1, m2)
-
-					while 1:
-						motor.runDoubleRelat(m1, m2, 80, 140, 80, 140)
-						motor.waitForStop(m1)
-						pos1_begin = motor.getPos(m1)
-						pos2_begin = motor.getPos(m2)
-						motor.runDoubleRelat(m1, m2, 80, 500, 80, -500)
-						motor.waitForStop(m1)
-
-						motor.runDoubleRelat(m1, m2, 80, -800, 80, 800)
-						while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
-							val1 = sensor.val(sen1)
-							val2 = sensor.val(sen1)
-							if (isBlack(val1) or isBlack(val2)):
-								motor.stop(m1);
-								motor.stop(m2);
-								print("restore")
-								break
-						
-						if (isBlack(val1) or isBlack(val2)):
-							if_out = 1
+				else:
+					motor.runDoubleRelat(m1, m2, 80, -600 - last_dir * 20,
+												 80, 600 + last_dir * 20)
+					while not motor.hasStopped(m2):
+						if isBlack(sensor.val(sen1)) or isBlack(sensor.val(sen2)):
+							motor.stop(m1)
+							motor.stop(m2)
 							break
-						
-						pos1_end = motor.getPos(m1)
-						pos2_end = motor.getPos(m2)
-						motor.runDoubleRelat(m1, m2,
-											 scan_s, 300,
-											 scan_s, -300)
+					else:
+						motor.runDoubleRelat(m1, m2, 80, 300, 80, -300)
 						motor.waitForDoubleStop(m1, m2)
-			motor.runDoubleDirect(m1, m2, speed, speed)
+						motor.runDoubleRelat(m1, m2, 80, 300, 80, 300)
+						motor.waitForStop(m1)
+						continue
+				break
 			pos1_begin = motor.getPos(m1)
 			pos2_begin = motor.getPos(m2)
+			motor.runDoubleDirect(m1, m2, speed, speed)
+			last_dir = 0
+		else:
+			motor.setDoubleSpeed(m1, m2, speed, speed)
+			# last_dir -= 0.1
+			# motor.runDoubleDirect(m1, m2, speed, speed)
+			# pos1_begin = motor.getPos(m1)
+			# pos2_begin = motor.getPos(m2)
 
+	motor.stop(m1)
+	motor.stop(m2)
+
+def collector_up(m):
+	motor.runSingleRelat(m, 20, -100, "hold")
+	# motor.waitForHold(m)
+	time.sleep(2)
+
+def collector_down(m):
+	motor.runSingleRelat(m, 20, 100, "hold")
+	# motor.waitForHold(m)
+	time.sleep(2)
+
+def claw_out(m):
+	motor.runSingleRelat(m, 30, 250, "hold")
+	# motor.waitForHold(m)
+	time.sleep(3)
+
+def claw_in(m):
+	motor.runSingleRelat(m, 30, -250, "hold")
+	# motor.waitForHold(m)
+	time.sleep(3)
+
+def catch_ball(claw, collector):
+	claw_in(claw)
+	claw_out(claw)
+
+def release_ball(claw, collector):
+	collector_down(collector)
+
+def goto_ball(m1, m2, us1, dist):
+	rot = math.atan(100 / dist) / 360 * 130 * 130 * 3.14
+	motor.runDoubleRelat(m1, m2, 60, -rot, 60, rot, "hold")
+	motor.waitForDoubleHold(m1, m2)
+	motor.runDoubleRelat(m1, m2, 70, 5 * dist, 70, 5 * dist)
+	motor.waitForDoubleStop(m1, m2)
+
+	"""
+	val = sensor.val(us1)
+	if val > 20 and val != 2550:
+		motor.runDoubleDirect(m1, m2, 60, 60)
+		pos1 = motor.getPos(m1)
+		# pos2 = motor.getPos(m2)
+		val = sensor.val(us1)
+		while 1:
+			if val <= 20 or val == 2550:
+				motor.stop(m1)
+				motor.stop(m2)
+				break
+			val = sensor.val(us1)
+	# motor.runDoubleRelat(m1, m2, 60, -130 + dist / 20, 60, 130 - dist / 20, "hold")
+	motor.runDoubleRelat(m1, m2, 60, -90, 60, 90, "hold")
+	motor.waitForDoubleHold(m1, m2)
+	# motor.runDoubleRelat(m1, m2, 70, 5 * dist, 70, 5 * dist)
+	# motor.waitForDoubleStop(m1, m2)
+	motor.runDoubleRelat(m1, m2, 70, 100, 70, 100)
+	motor.waitForDoubleStop(m1, m2)
+	return motor.getPos(m1) - pos1
+	"""
+	return 5 * dist
+
+def catch_balls(m1, m2, us1, claw, collector):
+	motor.setPolarity(m1, "inversed")
+	motor.setPolarity(m2, "inversed")
+	sensor.setMode(us1, "US-DIST-CM")
+	motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
+	collector_up(collector)
+	while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
+		us1_val = sensor.val(us1)
+		# print(us1_val)
+		if (us1_val < 250):
+			motor.stop(m1)
+			motor.stop(m2)
+			speak("haha")
+			dist = goto_ball(m1, m2, us1, us1_val)
+			catch_ball(claw, collector)
+			motor.runDoubleRelat(m1, m2, 70, -dist, 70, -dist)
+			motor.waitForDoubleStop(m1, m2)
+			speak("ha ha ha ha")
+			motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
+			# print("stop!!")
+			# break
+	collector_down(collector)
 	motor.stop(m1)
 	motor.stop(m2)
 
@@ -533,6 +620,17 @@ def line(m1, m2, sen1, sen2, speed):
 
 # MK: 1
 # 7.4v - 7.2v: s 40, p 7, i 0.003, d 30
+
+#collector_up(motors[3])
+#collector_down(motors[3])
+#collector_up(motors[3])
+#collector_down(motors[3])
+
+# catch_ball(motors[0], motors[3])
+# release_ball(motors[0], motors[3])
+
+catch_balls(motors[2], motors[1], sensors[2], motors[0], motors[3])
+exit()
 
 if 0:
 	sensor.setMode(sensors[0][1], "COL-REFLECT")
@@ -560,8 +658,8 @@ if 0:
 	time.sleep(2)
 	speak("start")
 
-	pid(motors[1], motors[2], sensors[0][1], sensors[0][2], 45, val1_1, val1_2, val2_1, val2_2, 7, 0.005, 50, inter)
+	pid(motors[1], motors[2], sensors[0][1], sensors[0][2], 45, val1_1, val1_2, val2_1, val2_2, 7, 0.005, 40, inter)
 else:
 	sensor.setMode(sensors[0][1], "COL-COLOR")
 	sensor.setMode(sensors[0][2], "COL-COLOR")
-	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 40)
+	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 45)
