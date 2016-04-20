@@ -531,14 +531,14 @@ def collector_down(m):
 	time.sleep(2)
 
 def claw_out(m):
-	motor.runSingleRelat(m, 30, 250, "hold")
+	motor.runSingleRelat(m, 50, 300, "hold")
 	# motor.waitForHold(m)
-	time.sleep(3)
+	time.sleep(2.5)
 
 def claw_in(m):
-	motor.runSingleRelat(m, 30, -250, "hold")
+	motor.runSingleRelat(m, 20, -300, "hold")
 	# motor.waitForHold(m)
-	time.sleep(3)
+	time.sleep(2.5)
 
 def catch_ball(claw, collector):
 	claw_in(claw)
@@ -548,7 +548,7 @@ def release_ball(claw, collector):
 	collector_down(collector)
 
 def goto_ball(m1, m2, us1, dist):
-	rot = math.atan(100 / dist) / 360 * 130 * 130 * 3.14
+	rot = math.atan(100 / (abs(dist - 50))) / 360 * 110 * 110 * 3.1415
 	motor.runDoubleRelat(m1, m2, 60, -rot, 60, rot, "hold")
 	motor.waitForDoubleHold(m1, m2)
 	motor.runDoubleRelat(m1, m2, 70, 5 * dist, 70, 5 * dist)
@@ -582,26 +582,32 @@ def catch_balls(m1, m2, us1, claw, collector):
 	motor.setPolarity(m1, "inversed")
 	motor.setPolarity(m2, "inversed")
 	sensor.setMode(us1, "US-DIST-CM")
-	motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
+	# motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
+	touch1 = sensor.val(sensors[1])
 	collector_up(collector)
-	while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
+	claw_out(claw)
+	while not touch1:
+		touch1 = sensor.val(sensors[1])
 		us1_val = sensor.val(us1)
 		# print(us1_val)
 		if (us1_val < 250):
 			motor.stop(m1)
 			motor.stop(m2)
-			speak("haha")
+			speak("find a ball")
 			dist = goto_ball(m1, m2, us1, us1_val)
 			catch_ball(claw, collector)
 			motor.runDoubleRelat(m1, m2, 70, -dist, 70, -dist)
 			motor.waitForDoubleStop(m1, m2)
-			speak("ha ha ha ha")
-			motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
+			speak("ha")
+			# motor.runDoubleRelat(m1, m2, 60, 3000, 60, -3000)
 			# print("stop!!")
 			# break
-	collector_down(collector)
+		motor.runDoubleRelat(m1, m2, 80, 40, 80, -40, "hold")
+		motor.waitForDoubleHold(m1, m2)
+		time.sleep(0.1)
 	motor.stop(m1)
 	motor.stop(m2)
+	collector_down(collector)
 
 # motor.runDoubleDirect(motors[1], motors[2], -60, -60)
 # motor.waitForDoubleStop(motors[1], motors[2])
