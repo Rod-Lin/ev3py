@@ -382,13 +382,14 @@ def isBlack(val):
 	#if (val <= config["black" + str(i)]):
 	#	return 1
 	#return 0
-	return val == 1 or val == 7
+	#return val == 1 or val == 7
+	return val <= 22
 
 def isWhite(val):
 	#if (val >= config["white" + str(i)]):
 	#	return 1
 	#return 0
-	return val == 6
+	return val > 22
 
 def isStucked(m1, m2, pos1, pos2, time_begin):
 	time_end = time.time()
@@ -434,8 +435,8 @@ def line(m1, m2, sen1, sen2, speed):
 	is_b1 = 0
 	is_b2 = 0
 
-	scan_s = 70
-	scan_s2 = 70
+	scan_s = 80
+	scan_s2 = 80
 
 	speed_o = speed
 
@@ -447,6 +448,8 @@ def line(m1, m2, sen1, sen2, speed):
 	time_end = 0
 
 	slope_start = 0
+
+	mount_mode = 0
 
 	motor.runDoubleDirect(m1, m2, speed, speed)
 
@@ -463,21 +466,27 @@ def line(m1, m2, sen1, sen2, speed):
 
 		time_end = time.time()
 		if (time_end - time_begin >= 0.5):
-			av_speed = ((motor.getPos(m1) - rs_begin1) / 0.5
-					  + (motor.getPos(m2) - rs_begin2) / 0.5) / 2
+			av_speed = ((abs(motor.getPos(m1) - rs_begin1)) / 0.5
+					  + (abs(motor.getPos(m2) - rs_begin2)) / 0.5) / 2
 			print(av_speed)
 
-			if (av_speed <= 70):
-				motor.runDoubleRelat(m1, m2, 80, 150, 80, 150, "hold")
+			if (av_speed <= 50):
+				motor.runDoubleRelat(m1, m2, 70, 200, 70, 200, "hold")
 				motor.waitForDoubleHold(m1, m2)
+				motor.runDoubleDirect(m1, m2, speed, speed)
 			elif (av_speed <= 160): # slope or obstacle
-				scan_s = 40
-				scan_s2 = 60
+				print("mount mode!")
+				mount_mode = 1
+				scan_s = 45
+				scan_s2 = 45
 				speed = 50
 				slope_start = time.time()
-			elif time_end - slope_start > 20:
-				scan_s = 70
-				scan_s2 = 70
+			elif (time_end - slope_start > 20
+				  or av_speed > 260):
+				print("mode turn back")
+				mount_mode = 0
+				scan_s = 80
+				scan_s2 = 80
 				speed = speed_o
 
 			rs_begin1 = motor.getPos(m1)
@@ -496,8 +505,40 @@ def line(m1, m2, sen1, sen2, speed):
 		# print(pos1_end - pos1_begin)
 
 		if (is_b1 and is_b2):
-			motor.runDoubleRelat(m1, m2, 70, 100, 70, 100, "hold")
-			motor.waitForDoubleHold(m1, m2)
+			if not mount_mode:
+				motor.runDoubleRelat(m1, m2, 70, 50, 70, 50)
+				motor.waitForDoubleStop(m1, m2)
+				rs_begin1 = motor.getPos(m1)
+				rs_begin2 = motor.getPos(m2)
+				time.sleep(0.5)
+				av_speed = ((abs(motor.getPos(m1) - rs_begin1)) / 0.5
+						  + (abs(motor.getPos(m2) - rs_begin2)) / 0.5) / 2
+				print("attention!! ", av_speed)
+				if av_speed >= 300:
+					# down slope
+					print("down slope!")
+					time.sleep(1)
+					motor.runDoubleRelat(m1, m2, 70, 200, 70, 200)
+					motor.waitForDoubleStop(m1, m2)
+					print("search left")
+					motor.runDoubleRelat(m1, m2, 60, -400, 60, 400)
+					while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
+						if isBlack(sensor.val(sen1)) or isBlack(sensor.val(sen2)):
+							print("find line")
+							motor.stop(m1)
+							motor.stop(m2)
+							break
+					else:
+						print("search right")
+						motor.runDoubleRelat(m1, m2, 60, 400, 60, -400)
+						while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
+							if isBlack(sensor.val(sen1)) or isBlack(sensor.val(sen2)):
+								print("find line")
+								break
+						motor.stop(m1)
+						motor.stop(m2)
+					motor.runDoubleDirect(m1, m2, speed, speed)
+					continue
 
 			"""
 			rs_begin1 = motor.getPos(m1)
@@ -516,6 +557,10 @@ def line(m1, m2, sen1, sen2, speed):
 					if (motor.getPos(m1) - pos1_start > 130):
 						motor.runDoubleRelat(m1, m2, 70, 400, 70, 400)
 						motor.waitForDoubleStop(m1, m2)
+						mount_mode = 0
+						scan_s = 80
+						scan_s2 = 80
+						speed = speed_o
 					motor.stop(m1)
 					motor.stop(m2)
 					break
@@ -559,8 +604,8 @@ def line(m1, m2, sen1, sen2, speed):
 						motor.stop(m2)
 						break
 				else:
-					motor.runDoubleRelat(m1, m2, scan_s2, -600 - last_dir * 20,
-												 scan_s2, 600 + last_dir * 20)
+					motor.runDoubleRelat(m1, m2, scan_s2, -600 - last_dir * 30,
+												 scan_s2, 600 + last_dir * 30)
 					while not (motor.hasStopped(m1) or motor.hasStopped(m2)):
 						if isBlack(sensor.val(sen1)) or isBlack(sensor.val(sen2)):
 							motor.stop(m1)
@@ -849,6 +894,6 @@ if 0:
 
 	pid(motors[1], motors[2], sensors[0][1], sensors[0][2], 45, val1_1, val1_2, val2_1, val2_2, 7, 0.005, 40, inter)
 else:
-	sensor.setMode(sensors[0][1], "COL-COLOR")
-	sensor.setMode(sensors[0][2], "COL-COLOR")
-	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 40)
+	sensor.setMode(sensors[0][1], "COL-REFLECT")
+	sensor.setMode(sensors[0][2], "COL-REFLECT")
+	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 45)
