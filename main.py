@@ -434,8 +434,8 @@ def line(m1, m2, sen1, sen2, speed):
 	is_b1 = 0
 	is_b2 = 0
 
-	scan_s = 60
-	scan_s2 = 60
+	scan_s = 70
+	scan_s2 = 70
 
 	speed_o = speed
 
@@ -467,14 +467,17 @@ def line(m1, m2, sen1, sen2, speed):
 					  + (motor.getPos(m2) - rs_begin2) / 0.5) / 2
 			print(av_speed)
 
-			if (av_speed <= 160): # slope or obstacle
+			if (av_speed <= 70):
+				motor.runDoubleRelat(m1, m2, 80, 150, 80, 150, "hold")
+				motor.waitForDoubleHold(m1, m2)
+			elif (av_speed <= 160): # slope or obstacle
 				scan_s = 40
-				scan_s2 = 45
+				scan_s2 = 60
 				speed = 50
 				slope_start = time.time()
 			elif time_end - slope_start > 20:
-				scan_s = 60
-				scan_s2 = 60
+				scan_s = 70
+				scan_s2 = 70
 				speed = speed_o
 
 			rs_begin1 = motor.getPos(m1)
@@ -493,16 +496,17 @@ def line(m1, m2, sen1, sen2, speed):
 		# print(pos1_end - pos1_begin)
 
 		if (is_b1 and is_b2):
+			motor.runDoubleRelat(m1, m2, 70, 100, 70, 100, "hold")
+			motor.waitForDoubleHold(m1, m2)
+
+			"""
 			rs_begin1 = motor.getPos(m1)
 			rs_begin2 = motor.getPos(m2)
-			motor.runDoubleRelat(m1, m2, 70, 100, 70, 100)
-			motor.waitForDoubleStop(m1, m2)
-			time.sleep(2)
-
+			time.sleep(0.5)
 			av_speed = ((motor.getPos(m1) - rs_begin1) / 0.5
 					  + (motor.getPos(m2) - rs_begin2) / 0.5) / 2
 			print("attention!! ", av_speed)
-			time.sleep(1)
+			"""
 
 			motor.runDoubleRelat(m1, m2, scan_s2, 800, scan_s2, 800)
 			pos1_start = motor.getPos(m1)
@@ -847,4 +851,4 @@ if 0:
 else:
 	sensor.setMode(sensors[0][1], "COL-COLOR")
 	sensor.setMode(sensors[0][2], "COL-COLOR")
-	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 45)
+	line(motors[1], motors[2], sensors[0][1], sensors[0][2], 40)
