@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 
 import os
+import time
 from const import *
 
 m_k = 1
@@ -115,25 +116,34 @@ def stop(m1, stop_cmd = "coast"):
 def reset(m1):
 	setCommand(m1, "reset")
 
-def waitForStop(m1):
-	while 1:
+def waitForStop(m1, timeout = -1):
+	st = time.time()
+	while time.time() - st <= timeout or timeout < 0:
 		if (not "running" in getState(m1).split()):
-			return
+			return 1
+	return 0
 
-def waitForDoubleStop(m1, m2):
-	while 1:
+def waitForDoubleStop(m1, m2, timeout = -1):
+	st = time.time()
+	while time.time() - st <= timeout or timeout < 0:
 		if hasStopped(m1) and hasStopped(m2):
-			return
+			return 1
+	return 0
 
-def waitForDoubleHold(m1, m2):
-	while 1:
+def waitForDoubleHold(m1, m2, timeout = -1):
+	st = time.time()
+	while time.time() - st <= timeout or timeout < 0:
 		if ("holding" in getState(m1).split()
 			and "holding" in getState(m2).split()):
-			return
+			return 1
+	return 0
 
-def waitForHold(m1):
-	while not ("holding" in getState(m1).split()):
-		pass
+def waitForHold(m1, timeout = -1):
+	st = time.time()
+	while time.time() - st <= timeout or timeout < 0:
+		if ("holding" in getState(m1).split()):
+			return 1
+	return 0
 
 def hasStopped(m1):
 	return not "running" in getState(m1).split()
